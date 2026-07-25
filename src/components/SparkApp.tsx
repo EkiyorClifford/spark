@@ -10,7 +10,7 @@ import {
 import type { StackPreference } from "@/lib/prompt";
 import { extractOpenQuestions } from "@/lib/questions";
 import {
-  buildShareUrl,
+  buildSharePageUrl,
   decodeShare,
   formatShareAttribution,
 } from "@/lib/share";
@@ -279,38 +279,88 @@ export default function SparkApp() {
   async function copyShareLink() {
     if (!output) return;
 
-    // First click: reveal optional name field; second click copies the link.
+    // First click: reveal optional name field; second click creates + copies.
     if (!shareNamePromptOpen) {
       setShareNamePromptOpen(true);
       setStatus("Optional: add a name for the shared link, then copy again");
       return;
     }
 
+    // Read from the live input to avoid any stale state timing issues.
+    const inputEl = document.getElementById(
+      "share-author",
+    ) as HTMLInputElement | null;
+    const author = (inputEl?.value ?? shareAuthor).trim();
+    if (author && author !== shareAuthor) setShareAuthor(author);
+
     const qa = questions.map((question, i) => ({
       question: question.raw,
       answer: (answers[i] || "").trim(),
     }));
-    const author = shareAuthor.trim();
     const stamped = generatedAt || new Date().toISOString();
-    const url = buildShareUrl({
-      v: 1,
-      idea,
-      stack,
-      output,
-      answers: qa.filter((a) => a.answer),
-      author: author || undefined,
-      generatedAt: stamped,
-    });
-    if (url.length > 12000) {
-      setShareNote(
-        "Share link is very long — copy may fail in some apps. Prefer Download Markdown.",
-      );
-    } else {
+
+    try {
+      setStatus("Creating share link…");
+      const res = await fetch("/api/shares", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          idea,
+          stack,
+          output,
+          answers: qa.filter((a) => a.answer),
+          author: author || undefined,
+          generatedAt: stamped,
+        }),
+      });
+      const data = (await res.json().catch(() => null)) as {
+        id?: string;
+        url?: string;
+        author?: string | null;
+        error?: string;
+      } | null;
+      if (!res.ok || !data?.id || !data.url) {
+        throw new Error(data?.error || "Could not create share link.");
+      }
+
+      // Round-trip verify: name must survive encode → store → fetch.
+      const verify = await fetch(`/api/shares/${data.id}`, { cache: "no-store" });
+      const stored = (await verify.json().catch(() => null)) as {
+        author?: string | null;
+      } | null;
+      console.info("[spark share]", {
+        enteredAuthor: author || null,
+        responseAuthor: data.author ?? null,
+        storedAuthor: stored?.author ?? null,
+        url: data.url,
+        urlLength: data.url.length,
+      });
+      if (author && stored?.author !== author) {
+        throw new Error(
+          "Share saved but author did not round-trip — try again.",
+        );
+      }
+
+      const url = data.url.startsWith("http")
+        ? data.url
+        : buildSharePageUrl(data.id);
       setShareNote("");
+      await navigator.clipboard.writeText(url);
+      setViewAttribution(
+        formatShareAttribution({
+          author: author || undefined,
+          generatedAt: stamped,
+        }),
+      );
+      setStatus(
+        author
+          ? `Share link copied (${author})`
+          : "Share link copied",
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Share failed.");
+      setStatus("");
     }
-    await navigator.clipboard.writeText(url);
-    window.history.replaceState(null, "", url);
-    setStatus("Share link copied");
   }
 
   function restoreHistory(item: HistoryItem) {

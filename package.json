@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:vague": "node scripts/test-vague-ideas.mjs"
+    "test:vague": "node scripts/test-vague-ideas.mjs",
+    "test:share": "node scripts/test-share-roundtrip.mjs"
   },
   "dependencies": {
     "next": "16.2.11",

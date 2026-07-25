@@ -57,7 +57,19 @@ npx vercel --prod
 3. **Example idea chips** — marketplace, booking, SaaS, local ops  
 4. **Local history** — last briefs in `localStorage`  
 5. **Stack preference** — Next.js / none / mobile-first  
-6. **Shareable links** — `#s=` payload in the URL (same tab)
+6. **Shareable links** — short `/s/{id}` URLs (brief stored server-side)
+
+## Share storage
+
+Share links store the brief by short ID (not in the URL). Resolution order:
+
+1. Vercel KV / Upstash (`KV_REST_API_URL` + `KV_REST_API_TOKEN`, or `UPSTASH_*`)
+2. GitHub (`GITHUB_TOKEN` or `SHARE_GITHUB_TOKEN`) on branch `shares-data`
+3. Local filesystem (`.data/shares/`) for `npm run dev`
+
+```bash
+npm run test:share
+```
 
 ## Why this exists
 
