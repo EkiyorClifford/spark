@@ -1,0 +1,9 @@
+{
+  "idea": "A marketplace for testing share links and author attribution.",
+  "stack": "nextjs",
+  "output": "## Problem\nFounders need short share URLs.\n## Target user\nPeople reviewing Spark demos.\n## MVP features\n- Share by ID — short links\n  Done when: a private window loads the brief by id\n## Suggested stack\nNext.js\n## 2-week build plan\nDay 1: ship share store\n## Open questions for the founder\n- [Stack] Keep Next.js?",
+  "author": "Jordizzy",
+  "generatedAt": "2026-07-25T23:05:10.901Z",
+  "id": "Z3PVhIv8",
+  "createdAt": "2026-07-25T23:05:17.034Z"
+}
